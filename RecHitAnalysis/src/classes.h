@@ -1,0 +1,15 @@
+#include "DataFormats/Common/interface/Wrapper.h"
+
+#include "RPCDPG/RecHitAnalysis/interface/RPCRecHitInfo.h"
+#include <vector>
+
+namespace {
+  struct RPCDPGRecHitAnalysis_DataFormats
+  {
+    RPCRecHitInfo dummyRPCRecHitInfo;
+    edm::Wrapper<RPCRecHitInfo> dummyRPCRecHitInfoWrapper;
+    std::vector<RPCRecHitInfo> dummyRPCRecHitInfoCollection;
+    edm::Wrapper<std::vector<RPCRecHitInfo> > dummyRPCRecHitInfoCollectionWrapper;
+    edm::Ptr<RPCRecHitInfo> dummyRPCRecHitInfoPtr;
+  };
+}

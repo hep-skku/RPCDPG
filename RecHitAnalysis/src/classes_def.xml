@@ -1,0 +1,9 @@
+<lcgdict>
+
+  <class name="RPCRecHitInfo" />
+  <class name="std::vector<RPCRecHitInfo>" />
+  <class name="edm::Wrapper<RPCRecHitInfo>" />
+  <class name="edm::Wrapper<std::vector<RPCRecHitInfo> >" />
+  <class name="edm::Ptr<RPCRecHitInfo>" />
+
+</lcgdict>
