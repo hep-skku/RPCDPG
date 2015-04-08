@@ -55,11 +55,18 @@ void RPCNtupleProducer::beginJob()
   edm::Service<TFileService> fs;
   tree_ = fs->make<TTree>("tree", "tree");
 
+  tree_->Branch("run", &runNumber_, "run/I");
+  tree_->Branch("lumi", &lumiNumber_, "lumi/I");
+  tree_->Branch("event", &eventNumber_, "event/I");
   tree_->Branch("recHits", "std::vector<RPCRecHitInfo>", rpcRecHitInfos_);
 }
 
 void RPCNtupleProducer::analyze(const edm::Event& event, const edm::EventSetup& eventSetup)
 {
+  runNumber_ = event.id().run();
+  lumiNumber_ = event.id().luminosityBlock();
+  eventNumber_ = event.id().event();
+
   edm::Handle<RPCRecHitCollection> rpcRecHitHandle;
   event.getByLabel("rpcRecHits", rpcRecHitHandle);
 
