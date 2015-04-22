@@ -76,13 +76,13 @@ void compareRPCInfo(TString fileName1, TString fileName2)
   int run1, lumi1, event1;
   int run2, lumi2, event2;
 
-  tree1->SetBranchAddress("runNumber"  , &run1  );
-  tree1->SetBranchAddress("lumiNumber" , &lumi1 );
-  tree1->SetBranchAddress("eventNumber", &event1);
+  tree1->SetBranchAddress("run"  , &run1  );
+  tree1->SetBranchAddress("lumi" , &lumi1 );
+  tree1->SetBranchAddress("event", &event1);
 
-  tree2->SetBranchAddress("runNumber"  , &run2  );
-  tree2->SetBranchAddress("lumiNumber" , &lumi2 );
-  tree2->SetBranchAddress("eventNumber", &event2);
+  tree2->SetBranchAddress("run"  , &run2  );
+  tree2->SetBranchAddress("lumi" , &lumi2 );
+  tree2->SetBranchAddress("event", &event2);
 
   std::vector<RPCRecHitInfo>* recHits1 = new std::vector<RPCRecHitInfo>;
   std::vector<RPCRecHitInfo>* recHits2 = new std::vector<RPCRecHitInfo>;
@@ -105,7 +105,7 @@ void compareRPCInfo(TString fileName1, TString fileName2)
   cout << "Finished event to entry number mapping" << endl;
 
   // Start loop
-  int nCommon = 0, nNoRPC = 0, nDiffSize = 0, nDiffInfo = 0;
+  int nCommon = 0, nNoRPC = 0, nDiffSize = 0, nDiffInfo = 0, nSameInfo = 0;
   std::set<int> analyzedRuns;
 
   for ( int iEntry1 = 0; iEntry1 < nEntry1; ++iEntry1 )
@@ -150,20 +150,24 @@ void compareRPCInfo(TString fileName1, TString fileName2)
         RPCRecHitInfo& recHit1 = recHits1->at(iRecHit);
         RPCRecHitInfo& recHit2 = recHits2->at(iRecHit);
 
-        if ( recHit1.region      != recHit2.region      ||
-             recHit1.ring        != recHit2.ring        ||
-             recHit1.station     != recHit2.station     ||
-             recHit1.sector      != recHit2.sector      ||
-             recHit1.layer       != recHit2.layer       ||
-             recHit1.subsector   != recHit2.subsector   ||
-             recHit1.roll        != recHit2.roll        ||
-             recHit1.lx          != recHit2.lx          ||
-             recHit1.lex         != recHit2.lex         ||
-             recHit1.gx          != recHit2.gx          ||
-             recHit1.gy          != recHit2.gy          ||
-             recHit1.gz          != recHit2.gz          ||
-             recHit1.clusterSize != recHit2.clusterSize ||
-             recHit1.bx          != recHit2.bx          )
+        if ( recHit1.region      == recHit2.region      &&
+             recHit1.ring        == recHit2.ring        &&
+             recHit1.station     == recHit2.station     &&
+             recHit1.sector      == recHit2.sector      &&
+             recHit1.layer       == recHit2.layer       &&
+             recHit1.subsector   == recHit2.subsector   &&
+             recHit1.roll        == recHit2.roll        &&
+             recHit1.lx          == recHit2.lx          &&
+             recHit1.lex         == recHit2.lex         &&
+             recHit1.gx          == recHit2.gx          &&
+             recHit1.gy          == recHit2.gy          &&
+             recHit1.gz          == recHit2.gz          &&
+             recHit1.clusterSize == recHit2.clusterSize &&
+             recHit1.bx          == recHit2.bx          )
+        {
+          ++nSameInfo;
+        }
+        else
         {
           ++nDiffInfo;
 
@@ -203,6 +207,7 @@ void compareRPCInfo(TString fileName1, TString fileName2)
   cout << " Both empty        : " << nNoRPC    << endl;
   cout << " Different number  : " << nDiffSize << endl;
   cout << " Different content : " << nDiffInfo << endl;
+  cout << " N-identical hits  : " << nSameInfo << endl;
   cout << "======================================================\n\n";
 
   delete recHits1;
