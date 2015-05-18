@@ -1,4 +1,5 @@
 #include "DataFormats/Common/interface/Wrapper.h"
+#include "DataFormats/Common/interface/Ptr.h"
 
 #include "RPCDPG/RecHitAnalysis/interface/RPCRecHitInfo.h"
 #include <vector>
