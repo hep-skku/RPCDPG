@@ -4,6 +4,7 @@
 #include "FWCore/Framework/interface/LuminosityBlock.h"
 
 #include <string>
+#include <fstream>
 using namespace std;
 
 class BlacklistExtractor : public DQMEDHarvester
@@ -17,14 +18,19 @@ public:
 
 private:
   string folderName_;
+  string outFileName_;
   unsigned int minEvents_;
   int run_;
+  double minDeadFrac_;
 };
 
 BlacklistExtractor::BlacklistExtractor(const edm::ParameterSet& ps)
 {
   folderName_ = ps.getUntrackedParameter<string>("folder", "RPC/AllHits");
-  minEvents_ = ps.getUntrackedParameter<unsigned int>("minEvents", 100);
+  outFileName_ = ps.getUntrackedParameter<string>("outFile", "Blacklist.txt");
+  minEvents_ = ps.getUntrackedParameter<unsigned int>("minEvents", 10000);
+  minDeadFrac_ = ps.getUntrackedParameter<double>("minDeadFrac", 0.8); // Minimum dead fraction to put blacklist
+
   run_ = -1;
 }
 
@@ -42,9 +48,12 @@ void BlacklistExtractor::dqmEndLuminosityBlock(DQMStore::IBooker&, DQMStore::IGe
 
 void BlacklistExtractor::dqmEndJob(DQMStore::IBooker& ibooker, DQMStore::IGetter& igetter)
 {
-  cout << "Run=" << run_ << endl;
   const char* fstr = folderName_.c_str();
   char buffer[101];
+
+  //snprintf(buffer, 100, "blacklist_%d.txt", run_);
+  ofstream fout(outFileName_);
+  fout << "# Run = " << run_ << endl;
 
   snprintf(buffer, 100, "%s/RPCEvents", folderName_.c_str());
   const auto meRPCEvents = igetter.get(buffer);
@@ -103,11 +112,13 @@ void BlacklistExtractor::dqmEndJob(DQMStore::IBooker& ibooker, DQMStore::IGetter
           }
 
           const double fdead = ndead/nstripPerRoll;
-
-          cout << chName << "_";
-          if ( ichStr != 2 ) cout << chSuffixBarrel[iiroll]; // 1,2->0,1->"B","F"
-          else cout << chSuffixBarrel[(iiroll*2+3)%3]; // 0,1,2->0,2,4->3,5,7->0,2,1->"B","M","F"
-          cout << " " << fdead << endl;
+          if ( fdead > minDeadFrac_ )
+          {
+            fout << chName << "_";
+            if ( ichStr != 2 ) fout << chSuffixBarrel[iiroll]; // 1,2->0,1->"B","F"
+            else fout << chSuffixBarrel[(iiroll*2+3)%3]; // 0,1,2->0,2,4->3,5,7->0,2,1->"B","M","F"
+            fout << " " << fdead << endl;
+          }
         } // roll in a chamber
       } // roll (and chamber)
     } // sector
@@ -136,20 +147,21 @@ void BlacklistExtractor::dqmEndJob(DQMStore::IBooker& ibooker, DQMStore::IGetter
           if ( !srcME ) break;
           const auto hSrc = srcME->getTH1();
 
-          double ndead = 0;
           const int nstrip = hSrc->GetNbinsX();
-          const int modstrip = nstrip/3; // Endcap chambers are consist of 3 rolls
-          for ( int istrip = 1; istrip <= nstrip; ++istrip )
+          const int nstripPerRoll = nstrip/3; // Endcap chambers are consist of 3 rolls
+          for ( int iiroll = 0; iiroll < 3; ++iiroll )
           {
-            if ( hSrc->GetBinContent(istrip) == 0 ) ndead += 1;
-            if ( istrip % modstrip == 0 )
+            double ndead = 0;
+            for ( int istrip = 0; istrip < nstripPerRoll; ++istrip )
             {
-              const double fdead = ndead/modstrip;
-              const int iroll = (istrip-1)/modstrip;
+              const int bin = 1+istrip+iiroll*nstripPerRoll;
+              if ( hSrc->GetBinContent(bin) == 0 ) ndead += 1;
+            }
 
-              cout << chName << "_" << chSuffixEndcap[iroll] << " " << fdead << endl;
-
-              ndead = 0;
+            const double fdead = ndead/nstripPerRoll;
+            if ( fdead > minDeadFrac_ )
+            {
+              fout << chName << "_" << chSuffixEndcap[iiroll] << " " << fdead << endl;
             }
           } // strip
         } // chamber (or segment)
