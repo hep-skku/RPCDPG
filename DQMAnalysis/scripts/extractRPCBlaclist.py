@@ -8,12 +8,16 @@ minDeadFrac = 0.8
 
 basePath = "/store1/jhgoh/RPC/DQM/SingleMu_2012D"
 
+blacklist = {}
+nRun = 0
+
 for fName in os.listdir(basePath):
     if not fName.startswith("DQM"): continue
     if not fName.endswith(".root"): continue
 
     runNumber = int(fName.split('_')[2][-6:])
     folderName = "/DQMData/Run %d/RPC/Run summary/AllHits" % runNumber
+    effFolderName = "/DQMData/Run %d/RPC/Run summary/RPCEfficiency" % runNumber
 
     f = TFile(os.path.join(basePath, fName))
     if f == None:
@@ -26,12 +30,17 @@ for fName in os.listdir(basePath):
 
     nRPCEvents = d.Get("RPCEvents").GetBinContent(1)
     if nRPCEvents < minEvents: continue
+    nRun += 1
 
     print runNumber
 
     for wheel in range(-2, 3):
         dirWheel = "Barrel/Wheel_%d" % wheel
         for sector in range(1, 13):
+            if wheel > 0: hEff = f.Get("%s/Efficiency_Roll_vs_Sector_Wheel_%+d" % (effFolderName, wheel))
+            else: hEff = f.Get("%s/Efficiency_Roll_vs_Sector_Wheel_%d" % (effFolderName, wheel))
+            effXbin = hEff.GetXaxis().FindBin("Sec%d" % sector)
+
             for station in range(1, 5):
                 dd = d.Get("%s/sector_%d/station_%d" % (dirWheel, sector, station))
                 for hName in [x.GetName() for x in dd.GetListOfKeys()]:
@@ -44,7 +53,9 @@ for fName in os.listdir(basePath):
 
                     chName = hName[10:]
                     rollSuffix = []
-                    if "RB2in" in chName: suffixes = ["B", "M", "F"]# RB2in is divide by 3 rolls
+                    if (abs(wheel) == 2 and "RB2out" in chName) or \
+                       (abs(wheel) <= 1 and "RB2in" in chName):
+                        suffixes = ["B", "M", "F"]# RB2in is divide by 3 rolls
                     else: suffixes = ["B", "F"]
 
                     nstrip = h.GetNbinsX()
@@ -53,19 +64,28 @@ for fName in os.listdir(basePath):
                     for iroll, suffix in enumerate(suffixes):
                         rollName = chName+"_"+suffix
 
+                        prefix = rollName.split('_')[1]
+                        if prefix == "RB4-": prefix = "RB4,-"
+                        elif prefix == "RB4": prefix = "RB4,-"
+                        effYbin = hEff.GetYaxis().FindBin("%s_%s" % (prefix, suffix))
+                        eff = hEff.GetBinContent(effXbin, effYbin)
+
                         ndead = 0.
                         for istrip in range(nPerRoll):
                             bin = 1+istrip+nPerRoll*iroll
                             if h.GetBinContent(bin) == 0: ndead += 1
                         fdead = ndead/nPerRoll
                         if fdead >= minDeadFrac:
-                            print "%s %f" % (rollName, fdead)
+                            #print "%s %f %f" % (rollName, fdead, eff)
+                            if rollName not in blacklist: blacklist[rollName] = 1
+                            else: blacklist[rollName] += 1
 
     for disk in range(-4, 5):
         if disk == 0: continue
         if disk > 0: dirDisk = "Endcap+/Disk_%d" % disk
         else: dirDisk = "Endcap-/Disk_%d" % disk
         for ring in range(2, 4):
+            hEff = f.Get("%s/Efficiency_Roll_vs_Segment_Disk_%d" % (effFolderName, disk))
             for sector in range(1, 7):
                 for segment in range(6*(sector-1)+1, 6*sector+1):
                     chName = "RE%+d_R%d_CH%02d" % (disk, ring, segment)
@@ -84,11 +104,20 @@ for fName in os.listdir(basePath):
                     for iroll, suffix in enumerate(suffixes):
                         rollName = chName+"_"+suffix
 
+                        effXbin, effYbin = segment, 1+iroll+3*(ring-2)
+                        eff = hEff.GetBinContent(effXbin, effYbin)
+
                         ndead = 0.
                         for istrip in range(nPerRoll):
                             bin = 1+istrip+nPerRoll*iroll
                             if h.GetBinContent(bin) == 0: ndead += 1
                         fdead = ndead/nPerRoll
                         if fdead > minDeadFrac:
-                            print "%s %f" % (rollName, fdead)
+                            #print "%s %f %f" % (rollName, fdead, eff)
+                            if rollName not in blacklist: blacklist[rollName] = 1
+                            else: blacklist[rollName] += 1
 
+for rollName in blacklist:
+    nDeadRun = blacklist[rollName]
+    if 1.*nDeadRun/nRun > 0.5:
+        print rollName, nDeadRun
