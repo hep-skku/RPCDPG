@@ -3,10 +3,11 @@
 import sys, os
 from ROOT import *
 
-minEvents = 100000
+minEvents = 10000
 minDeadFrac = 0.8
 
 basePath = "/store1/jhgoh/RPC/DQM/SingleMu_2012D"
+#basePath = "/store1/jhgoh/RPC/DQM/Cosmics_2015"
 
 blacklist = {}
 nRun = 0
@@ -29,7 +30,9 @@ for fName in os.listdir(basePath):
         continue
 
     nRPCEvents = d.Get("RPCEvents").GetBinContent(1)
-    if nRPCEvents < minEvents: continue
+    if nRPCEvents < minEvents:
+        print "Too small statistics, ", nRPCEvents, fName
+        continue
     nRun += 1
 
     print runNumber
@@ -37,7 +40,9 @@ for fName in os.listdir(basePath):
     for wheel in range(-2, 3):
         dirWheel = "Barrel/Wheel_%d" % wheel
         for sector in range(1, 13):
-            if wheel > 0: hEff = f.Get("%s/Efficiency_Roll_vs_Sector_Wheel_%+d" % (effFolderName, wheel))
+            if wheel > 0:
+                hEff = f.Get("%s/Efficiency_Roll_vs_Sector_Wheel_%+d" % (effFolderName, wheel))
+                if hEff == None: hEff = f.Get("%s/Efficiency_Roll_vs_Sector_Wheel_%d" % (effFolderName, wheel))
             else: hEff = f.Get("%s/Efficiency_Roll_vs_Sector_Wheel_%d" % (effFolderName, wheel))
             effXbin = hEff.GetXaxis().FindBin("Sec%d" % sector)
 
@@ -117,7 +122,7 @@ for fName in os.listdir(basePath):
                             if rollName not in blacklist: blacklist[rollName] = 1
                             else: blacklist[rollName] += 1
 
-for rollName in blacklist:
+for rollName in sorted(blacklist.keys()):
     nDeadRun = blacklist[rollName]
     if 1.*nDeadRun/nRun > 0.5:
         print rollName, nDeadRun
