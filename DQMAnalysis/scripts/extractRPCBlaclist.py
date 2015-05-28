@@ -6,13 +6,15 @@ from ROOT import *
 minEvents = 10000
 minDeadFrac = 0.8
 
-basePath = "/store1/jhgoh/RPC/DQM/SingleMu_2012D"
+basePath = "/store1/chanwook/data"
+#basePath = "/store1/jhgoh/RPC/DQM/SingleMu2012"
 #basePath = "/store1/jhgoh/RPC/DQM/Cosmics_2015"
 
-blacklist = {}
+nRoll = 0
 nRun = 0
+rollsByRun = {}
 
-for fName in os.listdir(basePath):
+for fName in sorted(os.listdir(basePath)):
     if not fName.startswith("DQM"): continue
     if not fName.endswith(".root"): continue
 
@@ -33,9 +35,15 @@ for fName in os.listdir(basePath):
     if nRPCEvents < minEvents:
         print "Too small statistics, ", nRPCEvents, fName
         continue
-    nRun += 1
+
+    nLSRPC = 0
+    hHVStatus = f.Get("DQMData/Run %d/RPC/Run summary/DCSInfo/rpcHVStatus" % runNumber)
+    for bin in range(1, hHVStatus.GetNbinsX()+1):
+        hvBit = hHVStatus.GetBinContent(bin, 1)
+        if hvBit >=  1-1e-5: nLSRPC += 1
 
     print runNumber
+    rollToFdead = {}
 
     for wheel in range(-2, 3):
         dirWheel = "Barrel/Wheel_%d" % wheel
@@ -80,10 +88,7 @@ for fName in os.listdir(basePath):
                             bin = 1+istrip+nPerRoll*iroll
                             if h.GetBinContent(bin) == 0: ndead += 1
                         fdead = ndead/nPerRoll
-                        if fdead >= minDeadFrac:
-                            #print "%s %f %f" % (rollName, fdead, eff)
-                            if rollName not in blacklist: blacklist[rollName] = 1
-                            else: blacklist[rollName] += 1
+                        rollToFdead[rollName] = (fdead, eff)
 
     for disk in range(-4, 5):
         if disk == 0: continue
@@ -117,12 +122,45 @@ for fName in os.listdir(basePath):
                             bin = 1+istrip+nPerRoll*iroll
                             if h.GetBinContent(bin) == 0: ndead += 1
                         fdead = ndead/nPerRoll
-                        if fdead > minDeadFrac:
-                            #print "%s %f %f" % (rollName, fdead, eff)
-                            if rollName not in blacklist: blacklist[rollName] = 1
-                            else: blacklist[rollName] += 1
+                        rollToFdead[rollName] = (fdead, eff)
 
-for rollName in sorted(blacklist.keys()):
-    nDeadRun = blacklist[rollName]
-    if 1.*nDeadRun/nRun > 0.5:
-        print rollName, nDeadRun
+    nRun += 1
+    nRoll = max(nRoll, len(rollToFdead))
+    rollsByRun[runNumber] = (rollToFdead, nLSRPC)
+
+hFdeadVsEff = TH2F("fdeadVsEff", "fdead vs efficiency;1-(Dead fraction) [%%];Efficiency [%%]", 102, -1, 101, 102, -1, 101)
+hRdeadVsEff = TH2F("rdeadVsEff", "fdead/LS vs efficiency;(1-(Dead fraction))/nLS [%%];Efficiency [%%]", 102, -1, 101, 102, -1, 101)
+hFdeadHistory = TH2F("fdeadHistory", "fdeadHistory", nRun, 0, nRun, nRoll, 0, nRoll)
+hRdeadHistory = TH2F("rdeadHistory", "rdeadHistory", nRun, 0, nRun, nRoll, 0, nRoll)
+for irun, run in enumerate(sorted(rollsByRun.keys())):
+    rollToFdead, nLS = rollsByRun[run]
+
+    fout = open("fDead_run%d.txt" % run, "w")
+    print>>fout, "# Run = %d" % run
+    print>>fout, "# nLS with RPC on = %d" % nLSRPC
+    print>>fout, "# Roll_Name\tnDeadStrip/nStrip"
+
+    for iroll, roll in enumerate(sorted(rollToFdead.keys())):
+        (fdead, eff) = rollToFdead[roll]
+        if eff == 1.0: eff += 1e-9
+        if eff == 0.0: eff -= 1e-9
+        print>>fout, "%s\t%f" % (roll, fdead)
+
+        hFdeadHistory.SetBinContent(irun+1, iroll+1, 1-fdead)
+        hRdeadHistory.SetBinContent(irun+1, iroll+1, (1-fdead)/nLS)
+        hFdeadVsEff.Fill((1-fdead)*100, eff)
+        hRdeadVsEff.Fill((1-fdead)*100/nLS, eff)
+
+    fout.close()
+
+cFHistory = TCanvas("cFHistory", "cFHistory", 500, 500)
+hFdeadHistory.Draw("COLZ")
+
+cFCorr = TCanvas("cFCorr", "cFCorr", 500, 500)
+hFdeadVsEff.Draw("COLZ")
+
+cRHistory = TCanvas("cRHistory", "cRHistory", 500, 500)
+hRdeadHistory.Draw("COLZ")
+
+cRCorr = TCanvas("cRCorr", "cRCorr", 500, 500)
+hRdeadVsEff.Draw("COLZ")
