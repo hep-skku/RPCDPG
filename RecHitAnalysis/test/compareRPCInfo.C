@@ -6,29 +6,7 @@ void compareRPCInfo()
 {
   TString baseDir = "./";
 
-/*
-  compareRPCInfo(baseDir+"rpcVal_430pre2.root", baseDir+"rpcVal_430pre4.root");
-  compareRPCInfo(baseDir+"rpcVal_430pre4.root", baseDir+"rpcVal_430pre5.root");
-  compareRPCInfo(baseDir+"rpcVal_430pre5.root", baseDir+"rpcVal_430pre6.root");
-  compareRPCInfo(baseDir+"rpcVal_430pre6.root", baseDir+"rpcVal_430pre7.root");
-
-  compareRPCInfo(baseDir+"rpcVal_430pre7.root", baseDir+"rpcVal_440pre1.root");
-  compareRPCInfo(baseDir+"rpcVal_440pre1.root", baseDir+"rpcVal_440pre2.root");
-  compareRPCInfo(baseDir+"rpcVal_440pre2.root", baseDir+"rpcVal_440pre3.root");
-  compareRPCInfo(baseDir+"rpcVal_440pre3.root", baseDir+"rpcVal_440pre4.root");
-  compareRPCInfo(baseDir+"rpcVal_440pre4.root", baseDir+"rpcVal_440pre5.root");
-  compareRPCInfo(baseDir+"rpcVal_440pre5.root", baseDir+"rpcVal_440pre7.root");
-  compareRPCInfo(baseDir+"rpcVal_440pre7.root", baseDir+"rpcVal_440pre8.root");
-  compareRPCInfo(baseDir+"rpcVal_440pre8.root", baseDir+"rpcVal_440pre9.root");
-  compareRPCInfo(baseDir+"rpcVal_440pre9.root", baseDir+"rpcVal_440pre10.root");
-  compareRPCInfo(baseDir+"rpcVal_440pre10.root", baseDir+"rpcVal_440.root");
-
-  compareRPCInfo(baseDir+"rpcVal_440.root", baseDir+"rpcVal_500pre2.root");
-  compareRPCInfo(baseDir+"rpcVal_440.root", baseDir+"rpcVal_500pre3.root");
-*/
-
-  compareRPCInfo(baseDir+"rpcVal_53X.root", baseDir+"rpcVal_74X.root");
-  //compareRPCInfo(baseDir+"rpcVal_600pre10.root", baseDir+"rpcVal_600pre8.root");
+  compareRPCInfo(baseDir+"reference.root", baseDir+"target.root");
 }
 
 
@@ -39,6 +17,11 @@ struct RPCRecHitInfo
   double gx, gy, gz;
   int clusterSize, bx;
 };
+
+#include <vector>
+#ifdef __MAKECINT__
+#pragma link C++ class vector<RPCRecHitInfo>+;
+#endif
 
 #include "TFile.h"
 #include "TTree.h"
