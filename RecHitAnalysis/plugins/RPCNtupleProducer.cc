@@ -29,8 +29,6 @@ class RPCNtupleProducer : public edm::EDAnalyzer
 public:
   RPCNtupleProducer(const edm::ParameterSet& pset);
   ~RPCNtupleProducer();
-  void beginJob();
-  void endJob() {};
   void analyze(const edm::Event& event, const edm::EventSetup& eventSetup);
 
 private:
@@ -43,15 +41,7 @@ private:
 RPCNtupleProducer::RPCNtupleProducer(const edm::ParameterSet& pset)
 {
   rpcRecHitInfos_ = new std::vector<RPCRecHitInfo>;
-}
 
-RPCNtupleProducer::~RPCNtupleProducer()
-{
-  if ( rpcRecHitInfos_ ) delete rpcRecHitInfos_;
-}
-
-void RPCNtupleProducer::beginJob()
-{
   edm::Service<TFileService> fs;
   tree_ = fs->make<TTree>("tree", "tree");
 
@@ -59,6 +49,11 @@ void RPCNtupleProducer::beginJob()
   tree_->Branch("lumi", &lumiNumber_, "lumi/I");
   tree_->Branch("event", &eventNumber_, "event/I");
   tree_->Branch("recHits", "std::vector<RPCRecHitInfo>", rpcRecHitInfos_);
+}
+
+RPCNtupleProducer::~RPCNtupleProducer()
+{
+  if ( rpcRecHitInfos_ ) delete rpcRecHitInfos_;
 }
 
 void RPCNtupleProducer::analyze(const edm::Event& event, const edm::EventSetup& eventSetup)
