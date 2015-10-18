@@ -1,7 +1,7 @@
 #include "FWCore/Framework/interface/MakerMacros.h"
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/EDAnalyzer.h"
+#include "FWCore/Framework/interface/one/EDAnalyzer.h"
 
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/EventSetup.h"
@@ -24,11 +24,11 @@
 
 using namespace std;
 
-class RPCNtupleProducer : public edm::EDAnalyzer
+class RPCNtupleMaker : public edm::one::EDAnalyzer<edm::one::SharedResources>
 {
 public:
-  RPCNtupleProducer(const edm::ParameterSet& pset);
-  ~RPCNtupleProducer();
+  RPCNtupleMaker(const edm::ParameterSet& pset);
+  ~RPCNtupleMaker();
   void analyze(const edm::Event& event, const edm::EventSetup& eventSetup);
 
 private:
@@ -38,8 +38,10 @@ private:
   std::vector<RPCRecHitInfo>* rpcRecHitInfos_;
 };
 
-RPCNtupleProducer::RPCNtupleProducer(const edm::ParameterSet& pset)
+RPCNtupleMaker::RPCNtupleMaker(const edm::ParameterSet& pset)
 {
+  usesResource("TFileService");
+
   rpcRecHitInfos_ = new std::vector<RPCRecHitInfo>;
 
   edm::Service<TFileService> fs;
@@ -51,12 +53,12 @@ RPCNtupleProducer::RPCNtupleProducer(const edm::ParameterSet& pset)
   tree_->Branch("recHits", "std::vector<RPCRecHitInfo>", rpcRecHitInfos_);
 }
 
-RPCNtupleProducer::~RPCNtupleProducer()
+RPCNtupleMaker::~RPCNtupleMaker()
 {
   if ( rpcRecHitInfos_ ) delete rpcRecHitInfos_;
 }
 
-void RPCNtupleProducer::analyze(const edm::Event& event, const edm::EventSetup& eventSetup)
+void RPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSetup& eventSetup)
 {
   runNumber_ = event.id().run();
   lumiNumber_ = event.id().luminosityBlock();
@@ -103,5 +105,5 @@ void RPCNtupleProducer::analyze(const edm::Event& event, const edm::EventSetup& 
   tree_->Fill();
 }
 
-DEFINE_FWK_MODULE(RPCNtupleProducer);
+DEFINE_FWK_MODULE(RPCNtupleMaker);
 

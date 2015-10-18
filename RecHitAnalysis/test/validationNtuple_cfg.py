@@ -45,8 +45,7 @@ process.source.fileNames.extend([
     '/store/data/Run2012D/SingleMu/RAW-RECO/ZMu-22Jan2013-v1/10000/12B45D3F-A7A7-E211-A827-00259073E382.root',
 ])
 
-process.rpcValTree = cms.EDAnalyzer("RPCNtupleProducer",
-)
+process.rpcValTree = cms.EDAnalyzer("RPCNtupleMaker",)
 
 process.p = cms.Path(
     process.rpcValTree
