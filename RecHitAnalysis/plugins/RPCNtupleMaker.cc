@@ -73,12 +73,11 @@ void RPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSetup& eve
 
   rpcRecHitInfos_->clear();
 
-  for ( RPCRecHitCollection::const_iterator rpcRecHit = rpcRecHitHandle->begin();
-        rpcRecHit != rpcRecHitHandle->end(); ++rpcRecHit )
+  for ( const auto& rpcRecHit : *rpcRecHitHandle )
   {
     RPCRecHitInfo rpcRecHitInfo;
 
-    RPCDetId detId = rpcRecHit->rpcId();
+    const RPCDetId& detId = rpcRecHit.rpcId();
     rpcRecHitInfo.region    = detId.region()   ;
     rpcRecHitInfo.ring      = detId.ring()     ;
     rpcRecHitInfo.station   = detId.station()  ;
@@ -87,17 +86,17 @@ void RPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSetup& eve
     rpcRecHitInfo.subsector = detId.subsector();
     rpcRecHitInfo.roll      = detId.roll()     ;
 
-    LocalPoint lp = rpcRecHit->localPosition();
-    GlobalPoint gp = rpcGeom->roll(detId)->toGlobal(lp);
+    const LocalPoint& lp = rpcRecHit.localPosition();
+    const GlobalPoint& gp = rpcGeom->roll(detId)->toGlobal(lp);
 
     rpcRecHitInfo.lx = lp.x();
     rpcRecHitInfo.gx = gp.x();
     rpcRecHitInfo.gy = gp.y();
     rpcRecHitInfo.gz = gp.z();
 
-    rpcRecHitInfo.lex = rpcRecHit->localPositionError().xx();
-    rpcRecHitInfo.clusterSize = rpcRecHit->clusterSize();
-    rpcRecHitInfo.bx = rpcRecHit->BunchX();
+    rpcRecHitInfo.lex = rpcRecHit.localPositionError().xx();
+    rpcRecHitInfo.clusterSize = rpcRecHit.clusterSize();
+    rpcRecHitInfo.bx = rpcRecHit.BunchX();
 
     rpcRecHitInfos_->push_back(rpcRecHitInfo);
   }
