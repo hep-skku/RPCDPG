@@ -32,13 +32,16 @@ public:
   void analyze(const edm::Event& event, const edm::EventSetup& eventSetup);
 
 private:
+  const edm::EDGetTokenT<RPCRecHitCollection> rpcRecHitToken_;
+
   TTree* tree_;
   int runNumber_, lumiNumber_, eventNumber_;
 
   std::vector<RPCRecHitInfo>* rpcRecHitInfos_;
 };
 
-RPCNtupleMaker::RPCNtupleMaker(const edm::ParameterSet& pset)
+RPCNtupleMaker::RPCNtupleMaker(const edm::ParameterSet& pset):
+  rpcRecHitToken_(consumes<RPCRecHitCollection>(edm::InputTag("rpcRecHits")))
 {
   usesResource("TFileService");
 
@@ -65,7 +68,7 @@ void RPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSetup& eve
   eventNumber_ = event.id().event();
 
   edm::Handle<RPCRecHitCollection> rpcRecHitHandle;
-  event.getByLabel("rpcRecHits", rpcRecHitHandle);
+  event.getByToken(rpcRecHitToken_, rpcRecHitHandle);
 
   // Get the RPC Geometry
   edm::ESHandle<RPCGeometry> rpcGeom;
