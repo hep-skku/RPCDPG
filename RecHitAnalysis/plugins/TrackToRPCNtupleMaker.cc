@@ -89,6 +89,7 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
   // Get the reco Muons
   edm::Handle<reco::MuonCollection> muonHandle;
   event.getByToken(muonToken_, muonHandle);
+  if ( muonHandle->empty() ) return;
 
   // Get the RPC RecHits
   edm::Handle<RPCRecHitCollection> rpcRecHitHandle;
@@ -108,6 +109,7 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
 
   rpcInfos_->clear();
 
+  int nTrackerMuon = 0;
   // Extrapolate muon tracks to RPC stations
   // Make RPCDet to Muon mapping and Muon -> AssociatorInfo map
   std::map<DetId, std::vector<reco::MuonRef> > rpcDetToMuonMap;
@@ -123,6 +125,7 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
     // And muon id cuts
     if ( !muRef->isTrackerMuon() ) continue;
     if ( !muon::isGoodMuon(*muRef, muon::TMOneStationLoose) ) continue;
+    ++nTrackerMuon;
 
     // Get the inner track (not the global/standalone to be free from RPC info)
     const reco::TrackRef track = muRef->track();
@@ -146,6 +149,7 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
     //          [](const TAMuonChamberMatch& a, const TAMuonChamberMatch& b) {
     //            return a.id.rawId() < b.id.rawId();});
   }
+  if ( nTrackerMuon == 0 ) return;
 
   for ( auto key : rpcDetToMuonMap )
   {
