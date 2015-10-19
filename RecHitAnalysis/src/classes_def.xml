@@ -6,4 +6,10 @@
   <class name="edm::Wrapper<std::vector<RPCRecHitInfo> >" />
   <class name="edm::Ptr<RPCRecHitInfo>" />
 
+  <class name="RPCRefRecHitInfo" />
+  <class name="std::vector<RPCRefRecHitInfo>" />
+  <class name="edm::Wrapper<RPCRefRecHitInfo>" />
+  <class name="edm::Wrapper<std::vector<RPCRefRecHitInfo> >" />
+  <class name="edm::Ptr<RPCRefRecHitInfo>" />
+
 </lcgdict>

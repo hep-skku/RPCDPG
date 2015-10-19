@@ -10,5 +10,12 @@ struct RPCRecHitInfo
   int clusterSize, bx;
 };
 
+struct RPCRefRecHitInfo : public RPCRecHitInfo
+{
+  double mupt, mueta, muphi;
+  double rlx, rlex;
+  double dx;
+};
+
 #endif
 

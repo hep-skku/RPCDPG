@@ -12,5 +12,12 @@ namespace {
     std::vector<RPCRecHitInfo> dummyRPCRecHitInfoCollection;
     edm::Wrapper<std::vector<RPCRecHitInfo> > dummyRPCRecHitInfoCollectionWrapper;
     edm::Ptr<RPCRecHitInfo> dummyRPCRecHitInfoPtr;
+
+    RPCRefRecHitInfo dummyRPCRefRecHitInfo;
+    edm::Wrapper<RPCRefRecHitInfo> dummyRPCRefRecHitInfoWrapper;
+    std::vector<RPCRefRecHitInfo> dummyRPCRefRecHitInfoCollection;
+    edm::Wrapper<std::vector<RPCRefRecHitInfo> > dummyRPCRefRecHitInfoCollectionWrapper;
+    edm::Ptr<RPCRefRecHitInfo> dummyRPCRefRecHitInfoPtr;
+
   };
 }
