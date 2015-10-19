@@ -13,10 +13,12 @@ process.load("TrackingTools.TrackAssociator.DetIdAssociatorESProducer_cff")
 process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
 ### conditions
-process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
-from Configuration.AlCa.autoCond import autoCond
-process.GlobalTag.globaltag = autoCond['startup']
+#process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
+process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff")
+#from Configuration.AlCa.autoCond import autoCond
+#process.GlobalTag.globaltag = autoCond['startup']
 #process.GlobalTag.globaltag = 'GR_R_74_V8::All'
+process.GlobalTag.globaltag = '74X_dataRun2_Prompt_v2'
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
 process.options = cms.untracked.PSet(
