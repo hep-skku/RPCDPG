@@ -173,6 +173,7 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
     //const auto& refLDir = tsos.localDirection();
 
     rpcInfo.rlx  = refLPos.x();
+    rpcInfo.rly  = refLPos.y();
     rpcInfo.rlex = refLErr.xx();
     rpcInfo.mupt  = muRef->pt();
     rpcInfo.mueta = muRef->eta();

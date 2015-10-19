@@ -13,7 +13,7 @@ struct RPCRecHitInfo
 struct RPCRefRecHitInfo : public RPCRecHitInfo
 {
   double mupt, mueta, muphi;
-  double rlx, rlex;
+  double rlx, rly, rlex;
   double dx;
 };
 
