@@ -174,11 +174,15 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
     const auto& tsos = states[0];
     const auto& refLPos = tsos.localPosition();
     const auto& refLErr = tsos.localError().positionError();
+    const auto& refGPos = tsos.globalPosition();
     //const auto& refLDir = tsos.localDirection();
 
     rpcInfo.rlx  = refLPos.x();
     rpcInfo.rly  = refLPos.y();
     rpcInfo.rlex = refLErr.xx();
+    rpcInfo.rgx  = refGPos.x();
+    rpcInfo.rgy  = refGPos.y();
+    rpcInfo.rgz  = refGPos.z();
     rpcInfo.mupt  = muRef->pt();
     rpcInfo.mueta = muRef->eta();
     rpcInfo.muphi = muRef->phi();
