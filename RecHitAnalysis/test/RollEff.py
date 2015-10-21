@@ -1,8 +1,8 @@
 from ROOT import *
 
 output = TFile.Open("result.root","RECREATE")
-nTotal,nRegion, nRing, nStation =1, 1, 1, 1
-nSector, nLayer, nSubsector, nRoll = 1, 2, 6, 3
+nTotal,nRegion, nRing, nStation =1, 3, 6, 4
+nSector, nLayer, nSubsector, nRoll = 12, 2, 6, 3
 
 nTotRoll = nRegion*nRing*nStation*nSector*nLayer*nSubsector*nRoll
 rootFile = "/afs/cern.ch/user/j/jhgoh/public/RPC/20151019_RPCEffic/ntuple.root"
