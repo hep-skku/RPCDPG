@@ -4,14 +4,7 @@ output = TFile.Open("result.root","RECREATE")
 nTotal,nRegion, nRing, nStation =1, 3, 6, 4
 nSector, nLayer, nSubsector, nRoll = 12, 2, 6, 3
 
-rootFile = "/afs/cern.ch/user/j/jhgoh/public/RPC/20151019_RPCEffic/ntuple.root"
-#rootFile = "ntuple.root"
-ntuple = TFile.Open(rootFile)
-rpc = ntuple.Get("trackRPC/tree")
 
-
-hBxRecHit = TH1F("hBxRecHit","",10,-1000,50)
-hBx = TH1F("hBx","",10,-1000,100)
 
 hEffVsTotal = TH1F("hEffVsTotal","Efficiency vs. Total",nTotal,0,1)
 hEffVsRegion = TH1F("hEffVsRegion","Efficiency vs. Region",nRegion,-1,2)
@@ -23,16 +16,22 @@ hEffVsSubsector = TH1F("hEffVsSubsector","Efficiency vs. Subsector",nSubsector,1
 hEffVsRoll = TH1F("hEffVsRoll","Efficiency vs. Roll",nRoll,1,4)
 
 def Eff(h,i,cut):
+  rootFile = "/afs/cern.ch/user/j/jhgoh/public/RPC/20151019_RPCEffic/ntuple.root"
+  #rootFile = "ntuple.root"
+  ntuple = TFile.Open(rootFile)
+  rpc = ntuple.Get("trackRPC/tree")
+
+  hBxRecHit = TH1F("hBxRecHit","",10,-1000,50)
+  hBx = TH1F("hBx","",10,-1000,100)
+
   rpc.Project("hBxRecHit","rpcInfo.bx","rpcInfo.bx!=-999 &&"+cut)
   rpc.Project("hBx","rpcInfo.bx","1 && "+cut)
   if hBx.Integral() != 0:
     eff = hBxRecHit.Integral()/hBx.Integral()
-    print eff
-#    print cut
     h.SetBinContent(i+1,eff)
   hBxRecHit.Reset()
   hBx.Reset()
-
+  ntuple.Close()
 
 for s0 in range(nTotal):
   for s1 in range(nRegion):
