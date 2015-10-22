@@ -370,4 +370,10 @@ void analyzeRPCRefRecHit(TString fileName, TString outFileName = "result.root") 
 
   delete recHits1;
 
+  hEffEndcapM->SetLineColor(kRed);
+  hEffEndcapP->SetLineColor(kMagenta);
+  hEffBarrel->Draw();
+  hEffEndcapM->Draw("sames");
+  hEffEndcapP->Draw("sames");
+
 }

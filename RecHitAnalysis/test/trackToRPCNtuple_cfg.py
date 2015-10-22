@@ -53,7 +53,7 @@ process.trackRPC = cms.EDAnalyzer("TrackToRPCNtupleMaker",
       usePreshower = cms.bool(False),
       truthMatch = cms.bool(False),
       useHcal = cms.bool(False),
-      accountForTrajectoryChangeCalo = cms.bool(False),
+      accountForTrajectoryChangeCalo = cms.bool(True),
       propagateAllDirections = cms.bool(True),
 
       muonMaxDistanceX = cms.double(5.0),
