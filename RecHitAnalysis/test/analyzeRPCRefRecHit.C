@@ -2,6 +2,7 @@
 #include "TTree.h"
 #include "TH1F.h"
 #include "TH2F.h"
+#include "TEfficiency.h"
 
 #include <iostream>
 #include <map>
@@ -224,38 +225,24 @@ void analyzeRPCRefRecHit(TString fileName, TString outFileName = "result.root") 
       }
     }
   }
-  //std::map<Key, TEfficiency*> hEff;
-  //hEff[Key()]=
-  TEfficiency* hEff = 0;
-  outFile->cd();
-  //hEff = new TEfficiency(hPass[Key()],hAll[Key()]);
-  hEff = new TEfficiency(hRollPass,hRollAll);
-  hEff->Write();
-  //hEff->SetDirectory(outFile);
-  for ( int region=-1; region<=1; ++region) {
-    if ( region == 0) {
-      for ( int ring=-2; ring<=2; ++ring) {
-        for ( int station=1; station<=4; ++station) {
-          for ( int sector=1; sector<=12; ++sector) {
-            for ( int layer=1; layer<=2; ++layer) {
-            }
-          }
-        }
-      }
-    }
-    else {
-      for ( int ring=1; ring<=4; ++ring) {
-        for ( int sector=1; sector<=12; ++sector) {
-          for ( int station=1; station<=4; ++station) {
-            for ( int layer=1; layer<=2; ++layer) {
-            }
-          }
-        }
-      }
-    }
-  }
+  // Set the first bin of the very first histogram to count "all statistics"
   hAll[Key()]->SetBinContent(1, hAll[Key()]->Integral());
   hPass[Key()]->SetBinContent(1, hPass[Key()]->Integral());
+
+  std::vector<TEfficiency*> effs;
+  for ( auto hh = hPass.begin(); hh != hPass.end(); ++hh ) {
+    auto key = hh->first;
+    auto hhPass = hh->second;
+    auto hhAll  = hAll[key];
+
+    // Set the output base directory
+    hhPass->GetDirectory()->cd();
+
+    effs.push_back(new TEfficiency(*hhPass, *hhAll));
+    effs.back()->SetName(Form("%s_eff", hhAll->GetName()));
+    effs.back()->SetDirectory(gDirectory);
+  }
+
   outFile->Write();
 
   cout << endl;
