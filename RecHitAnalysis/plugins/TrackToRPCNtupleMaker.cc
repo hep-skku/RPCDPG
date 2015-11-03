@@ -18,8 +18,11 @@
 #include "DataFormats/MuonReco/interface/MuonFwd.h"
 #include "DataFormats/MuonReco/interface/MuonSelectors.h"
 
+#include "TrackingTools/Records/interface/TransientTrackRecord.h"
+#include "TrackingTools/TransientTrack/interface/TransientTrackBuilder.h"
 #include "TrackingTools/Records/interface/TrackingComponentsRecord.h"
-#include "TrackingTools/TrackAssociator/interface/TrackDetectorAssociator.h"
+#include "TrackingTools/GeomPropagators/interface/Propagator.h"
+//#include "TrackingTools/TrackAssociator/interface/TrackDetectorAssociator.h"
 
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
@@ -41,8 +44,8 @@ private:
   const double minPt_, maxEta_;
 
   // Track Detector Associators
-  TrackDetectorAssociator trackAssoc_;
-  TrackAssociatorParameters trackAssocParams_;
+  //TrackDetectorAssociator trackAssoc_;
+  //TrackAssociatorParameters trackAssocParams_;
 
   // Histograms and trees
   TTree* tree_;
@@ -58,8 +61,8 @@ TrackToRPCNtupleMaker::TrackToRPCNtupleMaker(const edm::ParameterSet& pset):
   minPt_(pset.getParameter<double>("minPt")),
   maxEta_(pset.getParameter<double>("maxEta"))
 {
-  auto iC = consumesCollector();
-  trackAssocParams_.loadParameters(pset.getParameter<edm::ParameterSet>("TrackAssociatorParameters"), iC);
+  //auto iC = consumesCollector();
+  //trackAssocParams_.loadParameters(pset.getParameter<edm::ParameterSet>("TrackAssociatorParameters"), iC);
 
   usesResource("TFileService");
 
@@ -103,9 +106,12 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
   edm::ESHandle<MagneticField> bField;
   eventSetup.get<IdealMagneticFieldRecord>().get(bField);
 
+  edm::ESHandle<TransientTrackBuilder> transTrackBuilder;
+  eventSetup.get<TransientTrackRecord>().get("TransientTrackBuilder", transTrackBuilder);
+
   edm::ESHandle<Propagator> propagator;
   eventSetup.get<TrackingComponentsRecord>().get("SteppingHelixPropagatorAny", propagator);
-  trackAssoc_.setPropagator(propagator.product());
+  //trackAssoc_.setPropagator(propagator.product());
 
   rpcInfos_->clear();
 
@@ -127,8 +133,38 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
     if ( !muon::isGoodMuon(*muRef, muon::TMOneStationLoose) ) continue;
     ++nTrackerMuon;
 
+/*
+    // Find DT/CSC hits associated with this muon. These infos will be used to narrow down interested chambers
+    std::vector<DetId> matchedDets;
+    for ( auto& match : muRef->matches() )
+    {
+      matchedDets.push_back(match.id);
+    }
+*/
+
     // Get the inner track (not the global/standalone to be free from RPC info)
     const reco::TrackRef track = muRef->track();
+    // Prepare extrapolation onto RPC rolls. Currently we are extrapolating onto all RPC rolls, but this can be improved
+    const reco::TransientTrack& transTrack = transTrackBuilder->build(track);
+    if ( !transTrack.isValid() ) continue;
+    const auto outerState = transTrack.outermostMeasurementState();
+    for ( const auto roll : rpcGeom->rolls() )
+    {
+      const auto surface = roll->surface();
+      const auto tState = propagator->propagate(outerState, surface);
+      if ( !tState.isValid() ) continue;
+
+      const auto id = roll->id();
+      //cout << stateOnRPC.localPosition().x() << endl;
+      if ( rpcDetToMuonMap.find(id) == rpcDetToMuonMap.end() )
+      {
+        rpcDetToMuonMap[id] = std::vector<reco::MuonRef>();
+        rpcDetToTSOSMap[id] = std::vector<TrajectoryStateOnSurface>();
+      }
+      rpcDetToMuonMap[id].push_back(muRef);
+      rpcDetToTSOSMap[id].push_back(tState);
+    }
+/*
     const auto matchInfo = trackAssoc_.associate(event, eventSetup, *track, 
                                                  trackAssocParams_, TrackDetectorAssociator::Any);
     for ( const auto& chamber : matchInfo.chambers )
@@ -144,6 +180,7 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
       rpcDetToMuonMap[chamber.id].push_back(muRef);
       rpcDetToTSOSMap[chamber.id].push_back(chamber.tState);
     }
+*/
     // Sort if needed
     //std::sort(muonToMatchMap[muRef].begin(), muonToMatchMap[muRef].end(), 
     //          [](const TAMuonChamberMatch& a, const TAMuonChamberMatch& b) {
