@@ -6,8 +6,10 @@ process = cms.Process("RPCRecHitValidation")
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.load("Configuration.StandardSequences.Services_cff")
 process.load("Configuration.StandardSequences.GeometryDB_cff")
+#process.load('Configuration.Geometry.GeometryRecoDB_cff')
 process.load("Configuration.StandardSequences.MagneticField_38T_cff")
 process.load("RecoMuon.TrackingTools.MuonServiceProxy_cff")
+process.load("TrackingTools.TransientTrack.TransientTrackBuilder_cfi")
 process.load("TrackingTools.TrackAssociator.DetIdAssociatorESProducer_cff")
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 1000
@@ -44,6 +46,8 @@ process.source.fileNames.extend([
 process.trackRPC = cms.EDAnalyzer("TrackToRPCNtupleMaker",
     minPt = cms.double(4),
     maxEta = cms.double(2.5),
+)
+"""
     ## TA parameters from TrackingTools/TrackAssociator/python/default_cfi.py
     TrackAssociatorParameters = cms.PSet(
       useMuon = cms.bool(True),
@@ -80,6 +84,7 @@ process.trackRPC = cms.EDAnalyzer("TrackToRPCNtupleMaker",
       HBHERecHitCollectionLabel = cms.InputTag("hbhereco"),
     ),
 )
+"""
 
 process.p = cms.Path(
     process.trackRPC
