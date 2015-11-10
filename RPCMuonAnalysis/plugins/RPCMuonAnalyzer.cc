@@ -32,7 +32,7 @@ private:
   typedef edm::Ref<pat::MuonCollection> MuonRef;
 
   const edm::EDGetTokenT<edm::TriggerResults> trgToken_;
-  const edm::EDGetTokenT<TriggerObjectRef> trgObjToken_;
+  const edm::EDGetTokenT<TriggerObjects> trgObjToken_;
   const std::string hltPathName_;
   const edm::EDGetTokenT<std::vector<pat::Muon> > muonToken_;
   const double minPt_, maxEta_;
@@ -107,14 +107,14 @@ void RPCMuonOptAnalyzer::analyze(const edm::Event& event, const edm::EventSetup&
 
   // Find tag muons
   double minDR = 1e9;
-  MuonRef tagMuonRef;
+  MuonRef tagMuRef;
   for ( int i=0, n=muonHandle->size(); i<n; ++i )
   {
-    MuonRef muonRef(muonHandle, i);
-    const double dR = deltaR(mu->p4(), trigObj->p4());
+    MuonRef muRef(muonHandle, i);
+    const double dR = deltaR(muRef->p4(), trgObjRef->p4());
     if ( dR < minDR )
     {
-      tagMuonRef = muonRef;
+      tagMuRef = muRef;
     }
   }
 }
