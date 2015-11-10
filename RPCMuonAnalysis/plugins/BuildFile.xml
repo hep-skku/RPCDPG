@@ -1,0 +1,14 @@
+<use name="FWCore/Framework" />
+<use name="FWCore/PluginManager" />
+<use name="FWCore/ParameterSet" />
+
+<use name="DataFormats/RPCRecHit"/>
+<use name="DataFormats/MuonReco" />
+<use name="PhysicsTools/UtilAlgos" />
+
+<use name="root" />
+
+<library file="*.cc" name="RPCDPGRPCMuonAnalysis_plugins">
+  <flags EDM_PLUGIN="1" />
+</library>
+
