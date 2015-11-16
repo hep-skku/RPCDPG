@@ -36,7 +36,7 @@ private:
   const edm::EDGetTokenT<reco::VertexCollection> vertexToken_;
   const edm::EDGetTokenT<edm::TriggerResults> trgToken_;
   const edm::EDGetTokenT<TriggerObjects> trgObjToken_;
-  const std::string hltPathName_;
+  const std::string hltPrefix_;
   const edm::EDGetTokenT<std::vector<pat::Muon> > muonToken_;
   const double minPt_, maxEta_;
 
@@ -55,7 +55,7 @@ RPCMuonOptAnalyzer::RPCMuonOptAnalyzer(const edm::ParameterSet& pset):
   vertexToken_(consumes<reco::VertexCollection>(pset.getParameter<edm::InputTag>("vertex"))),
   trgToken_(consumes<edm::TriggerResults>(edm::InputTag("TriggerResults::HLT"))),
   trgObjToken_(consumes<TriggerObjects>(pset.getParameter<edm::InputTag>("triggerObject"))),
-  hltPathName_(pset.getParameter<std::string>("hltPathName")),
+  hltPrefix_(pset.getParameter<std::string>("hltPrefix")),
   muonToken_(consumes<pat::MuonCollection>(pset.getParameter<edm::InputTag>("muon"))),
   minPt_(pset.getParameter<double>("minPt")),
   maxEta_(pset.getParameter<double>("maxEta"))
@@ -107,10 +107,14 @@ void RPCMuonOptAnalyzer::analyze(const edm::Event& event, const edm::EventSetup&
   {
     pat::TriggerObjectStandAlone trgObj = trgObjHandle->at(i);
     trgObj.unpackPathNames(event.triggerNames(*trgHandle));
-    if ( trgObj.hasPathName(hltPathName_) )
+    for ( const auto& path : trgObj.pathNames() )
     {
-      trgObjRef = TriggerObjectRef(trgObjHandle, i);
-      break;
+      const auto matching = std::mismatch(hltPrefix_.begin(), hltPrefix_.end(), path.begin());
+      if ( matching.first == hltPrefix_.end() )
+      {
+        trgObjRef = TriggerObjectRef(trgObjHandle, i);
+        break;
+      }
     }
   }
   if ( trgObjRef.isNull() ) return;
@@ -162,7 +166,7 @@ void RPCMuonOptAnalyzer::analyze(const edm::Event& event, const edm::EventSetup&
 
   // Fill the ID variables
   
-
+  tree_->Fill();
 }
 
 #include "FWCore/Framework/interface/MakerMacros.h"

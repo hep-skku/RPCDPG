@@ -39,8 +39,10 @@ process.source.fileNames.extend([
 ])
 
 process.rpcMuon = cms.EDAnalyzer("RPCMuonOptAnalyzer",
+    vertex = cms.InputTag("offlineSlimmedPrimaryVertices"),
     muon = cms.InputTag("slimmedMuons"),
     triggerObject = cms.InputTag("selectedPatTrigger"),
+    hltPrefix = cms.string("HLT_IsoMu27"),
     minPt = cms.double(4),
     maxEta = cms.double(2.5),
 )
