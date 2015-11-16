@@ -39,13 +39,10 @@ public:
   void analyze(const edm::Event& event, const edm::EventSetup& eventSetup);
 
 private:
+  const bool doExtrapolation_;
   const edm::EDGetTokenT<reco::MuonCollection> muonToken_;
   const edm::EDGetTokenT<RPCRecHitCollection> rpcRecHitToken_;
   const double minPt_, maxEta_;
-
-  // Track Detector Associators
-  //TrackDetectorAssociator trackAssoc_;
-  //TrackAssociatorParameters trackAssocParams_;
 
   // Histograms and trees
   TTree* tree_;
@@ -53,17 +50,22 @@ private:
 
   std::vector<RPCRefRecHitInfo>* rpcInfos_;
 
+  struct ExtPoint
+  {
+    float lx, ly;
+    float lxErr;
+    float gx, gy, gz;
+  };
+
 };
 
 TrackToRPCNtupleMaker::TrackToRPCNtupleMaker(const edm::ParameterSet& pset):
+  doExtrapolation_(pset.getParameter<bool>("doExtrapolation")),
   muonToken_(consumes<reco::MuonCollection>(edm::InputTag("muons"))),
   rpcRecHitToken_(consumes<RPCRecHitCollection>(edm::InputTag("rpcRecHits"))),
   minPt_(pset.getParameter<double>("minPt")),
   maxEta_(pset.getParameter<double>("maxEta"))
 {
-  //auto iC = consumesCollector();
-  //trackAssocParams_.loadParameters(pset.getParameter<edm::ParameterSet>("TrackAssociatorParameters"), iC);
-
   usesResource("TFileService");
 
   edm::Service<TFileService> fs;
@@ -89,14 +91,14 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
   lumiNumber_ = event.id().luminosityBlock();
   eventNumber_ = event.id().event();
 
+  // Get the RPC RecHits
+  edm::Handle<RPCRecHitCollection> rpcRecHitHandle;
+  event.getByToken(rpcRecHitToken_, rpcRecHitHandle);
+
   // Get the reco Muons
   edm::Handle<reco::MuonCollection> muonHandle;
   event.getByToken(muonToken_, muonHandle);
   if ( muonHandle->empty() ) return;
-
-  // Get the RPC RecHits
-  edm::Handle<RPCRecHitCollection> rpcRecHitHandle;
-  event.getByToken(rpcRecHitToken_, rpcRecHitHandle);
 
   // Get the RPC Geometry
   edm::ESHandle<RPCGeometry> rpcGeom;
@@ -104,14 +106,14 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
 
   // Components to do track extrapolation
   edm::ESHandle<MagneticField> bField;
-  eventSetup.get<IdealMagneticFieldRecord>().get(bField);
-
   edm::ESHandle<TransientTrackBuilder> transTrackBuilder;
-  eventSetup.get<TransientTrackRecord>().get("TransientTrackBuilder", transTrackBuilder);
-
   edm::ESHandle<Propagator> propagator;
-  eventSetup.get<TrackingComponentsRecord>().get("SteppingHelixPropagatorAny", propagator);
-  //trackAssoc_.setPropagator(propagator.product());
+  if ( doExtrapolation_ )
+  {
+    eventSetup.get<IdealMagneticFieldRecord>().get(bField);
+    eventSetup.get<TransientTrackRecord>().get("TransientTrackBuilder", transTrackBuilder);
+    eventSetup.get<TrackingComponentsRecord>().get("SteppingHelixPropagatorAny", propagator);
+  }
 
   rpcInfos_->clear();
 
@@ -119,12 +121,10 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
   // Extrapolate muon tracks to RPC stations
   // Make RPCDet to Muon mapping and Muon -> AssociatorInfo map
   std::map<DetId, std::vector<reco::MuonRef> > rpcDetToMuonMap;
-  std::map<DetId, std::vector<TrajectoryStateOnSurface> > rpcDetToTSOSMap; // This is duplicated info, but handy
-  //std::map<reco::MuonRef, std::vector<TAMuonChamberMatch> > muonToMatchMap;
+  std::map<DetId, std::vector<ExtPoint> > rpcDetToPointMap; // This is duplicated info, but handy
   for ( size_t i=0, n=muonHandle->size(); i<n; ++i )
   {
     reco::MuonRef muRef(muonHandle, i);
-    //muonToMatchMap[muRef] = std::vector<TAMuonChamberMatch>();
 
     // Very basic muon acceptance cut
     if ( muRef->pt() < minPt_ or std::abs(muRef->eta()) > maxEta_ ) continue;
@@ -133,58 +133,60 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
     if ( !muon::isGoodMuon(*muRef, muon::TMOneStationLoose) ) continue;
     ++nTrackerMuon;
 
-/*
-    // Find DT/CSC hits associated with this muon. These infos will be used to narrow down interested chambers
-    std::vector<DetId> matchedDets;
-    for ( auto& match : muRef->matches() )
+    if ( doExtrapolation_ )
     {
-      matchedDets.push_back(match.id);
-    }
-*/
-
-    // Get the inner track (not the global/standalone to be free from RPC info)
-    const reco::TrackRef track = muRef->track();
-    // Prepare extrapolation onto RPC rolls. Currently we are extrapolating onto all RPC rolls, but this can be improved
-    const reco::TransientTrack& transTrack = transTrackBuilder->build(track);
-    if ( !transTrack.isValid() ) continue;
-    const auto outerState = transTrack.outermostMeasurementState();
-    for ( const auto roll : rpcGeom->rolls() )
-    {
-      const auto surface = roll->surface();
-      const auto tState = propagator->propagate(outerState, surface);
-      if ( !tState.isValid() ) continue;
-
-      const auto id = roll->id();
-      //cout << stateOnRPC.localPosition().x() << endl;
-      if ( rpcDetToMuonMap.find(id) == rpcDetToMuonMap.end() )
+      // Get the inner track (not the global/standalone to be free from RPC info)
+      const reco::TrackRef track = muRef->track();
+      if ( track.isNull() ) continue;
+      // Prepare extrapolation onto RPC rolls. Currently we are extrapolating onto all RPC rolls, but this can be improved
+      const reco::TransientTrack transTrack = transTrackBuilder->build(track);
+      if ( !transTrack.isValid() ) continue;
+      TrajectoryStateOnSurface prevState = transTrack.outermostMeasurementState();
+      for ( const auto roll : rpcGeom->rolls() )
       {
-        rpcDetToMuonMap[id] = std::vector<reco::MuonRef>();
-        rpcDetToTSOSMap[id] = std::vector<TrajectoryStateOnSurface>();
-      }
-      rpcDetToMuonMap[id].push_back(muRef);
-      rpcDetToTSOSMap[id].push_back(tState);
-    }
-/*
-    const auto matchInfo = trackAssoc_.associate(event, eventSetup, *track, 
-                                                 trackAssocParams_, TrackDetectorAssociator::Any);
-    for ( const auto& chamber : matchInfo.chambers )
-    {
-      if ( chamber.id.det() != DetId::Muon ) continue;
-      if ( chamber.id.subdetId() != 3 ) continue;
+        const auto surface = roll->surface();
+        const auto tState = propagator->propagate(prevState, surface);
+        if ( !tState.isValid() ) continue;
 
-      //muonToMatchMap[muRef].push_back(chamber);
-      if ( rpcDetToMuonMap.find(chamber.id) == rpcDetToMuonMap.end() ) {
-        rpcDetToMuonMap[chamber.id] = std::vector<reco::MuonRef>();
-        rpcDetToTSOSMap[chamber.id] = std::vector<TrajectoryStateOnSurface>();
+        const auto id = roll->id();
+        //cout << stateOnRPC.localPosition().x() << endl;
+        if ( rpcDetToMuonMap.find(id) == rpcDetToMuonMap.end() )
+        {
+          rpcDetToMuonMap[id] = std::vector<reco::MuonRef>();
+          rpcDetToPointMap[id] = std::vector<ExtPoint>();
+        }
+
+        const auto lPos = tState.localPosition();
+        const auto gPos = tState.globalPosition();
+        const ExtPoint point = {lPos.x(), lPos.y(),
+                                std::sqrt(tState.localError().positionError().xx()),
+                                gPos.x(), gPos.y(), gPos.z()};
+        rpcDetToMuonMap[id].push_back(muRef);
+        rpcDetToPointMap[id].push_back(point);
       }
-      rpcDetToMuonMap[chamber.id].push_back(muRef);
-      rpcDetToTSOSMap[chamber.id].push_back(chamber.tState);
     }
-*/
-    // Sort if needed
-    //std::sort(muonToMatchMap[muRef].begin(), muonToMatchMap[muRef].end(), 
-    //          [](const TAMuonChamberMatch& a, const TAMuonChamberMatch& b) {
-    //            return a.id.rawId() < b.id.rawId();});
+    else
+    {
+      // Get the pre-calculated extrapolated points from RPCMuon reconstruction
+      for ( const auto& chMatch : muRef->matches() )
+      {
+        if ( chMatch.detector() != MuonSubdetId::RPC ) continue;
+        const auto& id = chMatch.id;
+        if ( !rpcGeom->roll(id) ) continue;
+
+        if ( rpcDetToMuonMap.find(id) == rpcDetToMuonMap.end() )
+        {
+          rpcDetToMuonMap[id] = std::vector<reco::MuonRef>();
+          rpcDetToPointMap[id] = std::vector<ExtPoint>();
+        }
+        const LocalPoint refLPos(chMatch.x, chMatch.y);
+        const GlobalPoint refGPos = rpcGeom->roll(id)->toGlobal(refLPos);
+        const ExtPoint point = {chMatch.x, chMatch.y, chMatch.xErr,
+                                refGPos.x(), refGPos.y(), refGPos.z()};
+        rpcDetToMuonMap[id].push_back(muRef);
+        rpcDetToPointMap[id].push_back(point);
+      }
+    }
   }
   if ( nTrackerMuon == 0 ) return;
 
@@ -194,9 +196,6 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
     const auto& muRefs = key.second;
     if ( muRefs.size() != 1 ) continue; // Skip if multiple muons
     auto muRef = muRefs.at(0);
-
-    const auto& states = rpcDetToTSOSMap[detId];
-    if ( states.size() != 1 ) continue; // Skip if multiple matchings
 
     RPCRefRecHitInfo rpcInfo;
     const RPCDetId rpcId(detId);
@@ -208,30 +207,37 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
     rpcInfo.subsector = rpcId.subsector();
     rpcInfo.roll      = rpcId.roll()     ;
 
-    const auto& tsos = states[0];
-    const auto& refLPos = tsos.localPosition();
-    const auto& refLErr = tsos.localError().positionError();
-    const auto& refGPos = tsos.globalPosition();
-    //const auto& refLDir = tsos.localDirection();
-
-    rpcInfo.rlx  = refLPos.x();
-    rpcInfo.rly  = refLPos.y();
-    rpcInfo.rlex = refLErr.xx();
-    rpcInfo.rgx  = refGPos.x();
-    rpcInfo.rgy  = refGPos.y();
-    rpcInfo.rgz  = refGPos.z();
     rpcInfo.mupt  = muRef->pt();
     rpcInfo.mueta = muRef->eta();
     rpcInfo.muphi = muRef->phi();
+
+    rpcInfo.dx = -999;
+    rpcInfo.lx = rpcInfo.lex = -999;
+    rpcInfo.gx = rpcInfo.gy = rpcInfo.gz = -999;
+    rpcInfo.clusterSize = 0;
+    rpcInfo.bx = -999;
+    rpcInfo.lex = -999;
+
+    const auto& points = rpcDetToPointMap[detId];
+    if ( points.size() != 1 ) continue; // Skip if multiple matchings
+    const auto& point = points[0];
+
+    rpcInfo.rlx  = point.lx;
+    rpcInfo.rly  = point.ly;
+    rpcInfo.rlex = point.lxErr;
+    rpcInfo.rgx  = point.gx;
+    rpcInfo.rgy  = point.gy;
+    rpcInfo.rgz  = point.gz;
 
     // Find RPC RecHits in this chamber. Choose minimum |dX|
     const auto rpcHitsRange = rpcRecHitHandle->get(detId);
     double minAdx = 1e9;
     auto matchedHit = rpcHitsRange.second;
-    for ( auto rpcHitItr = rpcHitsRange.first; rpcHitItr != rpcHitsRange.second; ++rpcHitItr )
+    for ( auto rpcHitItr = rpcHitsRange.first;
+          rpcHitItr != rpcHitsRange.second; ++rpcHitItr )
     {
       // NOTE: Should we add recHit cuts?
-      const double adx = std::abs(rpcHitItr->localPosition().x() - refLPos.x());
+      const double adx = std::abs(rpcHitItr->localPosition().x() - point.lx);
       if ( adx < minAdx )
       {
         minAdx = adx;
@@ -239,23 +245,14 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
       }
     }
 
-    if ( matchedHit == rpcHitsRange.second )
-    {
-      rpcInfo.dx = -999;
-      rpcInfo.lx = rpcInfo.lex = -999;
-      rpcInfo.gx = rpcInfo.gy = rpcInfo.gz = -999;
-      rpcInfo.clusterSize = 0;
-      rpcInfo.bx = -999;
-    }
-    else
+    if ( matchedHit != rpcHitsRange.second )
     {
       // We got RPCHit here
       const LocalPoint& hitLPos = matchedHit->localPosition();
       const LocalError& hitLErr = matchedHit->localPositionError();
-      const GlobalPoint& hitGPos = rpcGeom->roll(detId)->toGlobal(hitLPos);
+      const GlobalPoint hitGPos = rpcGeom->roll(detId)->toGlobal(hitLPos);
 
-      const double dx = hitLPos.x() - refLPos.x();
-      rpcInfo.dx = dx;
+      rpcInfo.dx = hitLPos.x() - point.lx;
 
       rpcInfo.lx = hitLPos.x();
       rpcInfo.gx = hitGPos.x();
