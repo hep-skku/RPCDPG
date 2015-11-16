@@ -2,7 +2,7 @@ from CRABClient.UserUtilities import config, getUsernameFromSiteDB
 config = config()
 
 config.General.requestName = 'RPCAnalysis'
-config.General.workArea = 'crab_ZeroBias_Run2015B'
+#config.General.workArea = 'crab_ZeroBias_Run2015D_v3'
 config.General.transferOutputs = True
 config.General.transferLogs = False
 
@@ -13,11 +13,16 @@ config.Data.inputDataset = '/ZeroBias/Run2015B-PromptReco-v1/RECO'
 #config.Data.inputDataset = '/ZeroBias/Run2015C-PromptReco-v1/RECO'
 #config.Data.inputDataset = '/ZeroBias/Run2015D-PromptReco-v3/RECO'
 #config.Data.inputDataset = '/ZeroBias/Run2015D-PromptReco-v4/RECO'
+
+config.General.workArea = 'crab_'+config.Data.inputDataset.split('/')[2].replace('-', '_')
+
 config.Data.inputDBS = 'global'
 config.Data.splitting = 'LumiBased'
 config.Data.unitsPerJob = 50
-config.Data.lumiMask = 'https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions15/13TeV/Cert_246908-255031_13TeV_PromptReco_Collisions15_50ns_JSON_MuonPhys_v2.txt'
-#config.Data.lumiMask = 'https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions15/13TeV/Cert_246908-258714_13TeV_PromptReco_Collisions15_25ns_JSON_MuonPhys.txt'
+if 'Run2015B' in config.Data.inputDataset:
+    config.Data.lumiMask = 'https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions15/13TeV/Cert_246908-255031_13TeV_PromptReco_Collisions15_50ns_JSON_MuonPhys_v2.txt'
+elif 'Run2015' in config.Data.inputDataset:
+    config.Data.lumiMask = 'https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions15/13TeV/Cert_246908-258714_13TeV_PromptReco_Collisions15_25ns_JSON_MuonPhys.txt'
 config.Data.runRange = '246908-258714'
 config.Data.outLFNDirBase = '/store/user/%s/' % (getUsernameFromSiteDB())
 config.Data.publication = False
