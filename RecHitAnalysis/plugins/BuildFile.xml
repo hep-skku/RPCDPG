@@ -15,7 +15,7 @@
 
 <use name="root" />
 
-<library file="*.cc" name="DPGAnalysisRPCValidationPlugins">
+<library file="*.cc" name="RPCDPGRecHitAnalysis_plugins">
   <flags EDM_PLUGIN="1" />
 </library>
 

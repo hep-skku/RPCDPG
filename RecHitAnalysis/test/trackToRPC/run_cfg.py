@@ -10,7 +10,7 @@ process.load("Configuration.StandardSequences.GeometryDB_cff")
 process.load("Configuration.StandardSequences.MagneticField_38T_cff")
 process.load("RecoMuon.TrackingTools.MuonServiceProxy_cff")
 process.load("TrackingTools.TransientTrack.TransientTrackBuilder_cfi")
-process.load("TrackingTools.TrackAssociator.DetIdAssociatorESProducer_cff")
+#process.load("TrackingTools.TrackAssociator.DetIdAssociatorESProducer_cff")
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
@@ -44,47 +44,10 @@ process.source.fileNames.extend([
 ])
 
 process.trackRPC = cms.EDAnalyzer("TrackToRPCNtupleMaker",
+    doExtrapolation = cms.bool(False),
     minPt = cms.double(4),
     maxEta = cms.double(2.5),
 )
-"""
-    ## TA parameters from TrackingTools/TrackAssociator/python/default_cfi.py
-    TrackAssociatorParameters = cms.PSet(
-      useMuon = cms.bool(True),
-      useCalo = cms.bool(False),
-      useEcal = cms.bool(False),
-      useHO = cms.bool(False),
-      usePreshower = cms.bool(False),
-      truthMatch = cms.bool(False),
-      useHcal = cms.bool(False),
-      accountForTrajectoryChangeCalo = cms.bool(True),
-      propagateAllDirections = cms.bool(True),
-
-      muonMaxDistanceX = cms.double(5.0),
-      muonMaxDistanceY = cms.double(5.0),
-      muonMaxDistanceSigmaX = cms.double(0.0),
-      muonMaxDistanceSigmaY = cms.double(0.0),
-      trajectoryUncertaintyTolerance = cms.double(-1.0),
-
-      CSCSegmentCollectionLabel = cms.InputTag("cscSegments"),
-      CaloTowerCollectionLabel = cms.InputTag("towerMaker"),
-
-      dRMuon = cms.double(9999.0),
-      dREcal = cms.double(9999.0),
-      dRHcal = cms.double(9999.0),
-      dRMuonPreselection = cms.double(0.2),
-      dREcalPreselection = cms.double(0.05),
-      dRHcalPreselection = cms.double(0.2),
-      dRPreshowerPreselection = cms.double(0.2),
-      HORecHitCollectionLabel = cms.InputTag("horeco"),
-
-      DTRecSegment4DCollectionLabel = cms.InputTag("dt4DSegments"),
-      EERecHitCollectionLabel = cms.InputTag("ecalRecHit","EcalRecHitsEE"),
-      EBRecHitCollectionLabel = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
-      HBHERecHitCollectionLabel = cms.InputTag("hbhereco"),
-    ),
-)
-"""
 
 process.p = cms.Path(
     process.trackRPC
