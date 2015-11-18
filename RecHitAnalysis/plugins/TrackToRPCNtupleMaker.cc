@@ -167,7 +167,7 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
     for ( const RPCRoll* roll : rpcGeom->rolls() )
     {
       if ( !roll ) continue;
-      const auto& surface = roll->surface();
+      const auto& surface = roll->specificSurface();
 
       bool hasNearbyMatch = false;
       for ( const auto& x : matchGPs )
@@ -199,7 +199,7 @@ void TrackToRPCNtupleMaker::analyze(const edm::Event& event, const edm::EventSet
       if ( !prevState.isValid() ) continue;
       for ( const RPCRoll* roll : matchedRolls )
       {
-        const auto surface = roll->surface();
+        const auto& surface = roll->specificSurface();
         const auto tState = propagator->propagate(prevState, surface);
         if ( !tState.isValid() ) continue;
 
